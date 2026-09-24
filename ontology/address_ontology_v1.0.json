@@ -1,0 +1,211 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "$id": "https://zcode.local/ontology/address_ontology_v0.9.json",
+ "title": "GeoGov 地址本体 (基于 GB/T 35639-2017, 对齐 ISO 19160-1/LOCN/xAL/GS1)",
+ "version": "1.0",
+ "date": "2026-09-17",
+ "standards": {
+  "structural": "GB/T 35639-2017《地址模型》: 6类UML(§5.2) + 组分8级(§6.2/6.3 BNF) + 专用信箱(§6.4.2)",
+  "international_alignment": {
+   "Address": [
+    "ISO 19160-1:Address",
+    "locn:Address",
+    "schema:PostalAddress"
+   ],
+   "AddressableObject": [
+    "ISO 19160-1:AddressableObject",
+    "schema:Place/Store",
+    "euBusinessGraph:Site"
+   ],
+   "ReferenceObject": [
+    "locn:Geometry",
+    "geo:Feature/geo:Geometry (OGC GeoSPARQL 1.1)"
+   ],
+   "AddressMetadata": [
+    "ISO 19160-1 lifecycle",
+    "PROV-O",
+    "DCTerms"
+   ],
+   "AddressSpecification": [
+    "UPU S42 国家模板",
+    "GDSN 全球数据字典"
+   ],
+   "AddressComponent": [
+    "ISO 19160-1:AddressComponent",
+    "locn 槽位",
+    "OASIS xAL 元素"
+   ]
+  },
+  "quality": {
+   "framework": "GB/T 36344-2018 (主口径) + Zaveri et al. 2016 六维(Semantic Web Journal swj176)",
+   "note": "错漏分级思想参照 GB/T 18316/24356, 门店数据非测绘成果仅借思想"
+  }
+ },
+ "classes": {
+  "Address": {
+   "gbt": "5.2 Address 地址类",
+   "definition": "标识和定位人们生产、生活等活动处所位置的结构化信息; 拥有唯一地址标识码, 由一组非空地址组分组成 (GB/T §3.1)",
+   "properties": [
+    "address_id",
+    "components[]",
+    "position",
+    "status",
+    "lifecycle_stage",
+    "aliases[]",
+    "metadata_ref",
+    "specification_ref"
+   ],
+   "constraint": "任一时刻/生命周期内, 一个空间对象唯一对应一个地址 (GB/T §7.2)"
+  },
+  "AddressComponent": {
+   "gbt": "5.2 地址组分类 (聚合关系: Address 聚合 1..* AddressComponent)",
+   "levels": {
+    "L1": {
+     "name": "省级区划名",
+     "required": true,
+     "locn": "adminUnitL1",
+     "xal": "Country",
+     "schema": "addressCountry",
+     "source": "GB/T 2260 + 民政部 Xzqh20251231"
+    },
+    "L2": {
+     "name": "地级区划名",
+     "required": false,
+     "locn": "adminUnitL2",
+     "xal": "AdministrativeArea",
+     "schema": "addressRegion"
+    },
+    "L3": {
+     "name": "县级区划名",
+     "required": false,
+     "locn": "adminUnitL2",
+     "xal": "SubAdministrativeArea",
+     "schema": "addressRegion"
+    },
+    "L4": {
+     "name": "乡镇/街道级区划名",
+     "required": false,
+     "locn": "postName",
+     "xal": "Locality"
+    },
+    "L5": {
+     "name": "社区/村(居)委名",
+     "required": false,
+     "locn": "addressArea"
+    },
+    "L6": {
+     "name": "街路巷/片区/村/社区名",
+     "required": false,
+     "repeatable": true,
+     "locn": "thoroughfare",
+     "xal": "Thoroughfare",
+     "schema": "streetAddress"
+    },
+    "L7": {
+     "name": "院门/楼址(门牌号/楼牌号/建筑物名/院落名)",
+     "required": false,
+     "repeatable": true,
+     "locn": "locatorDesignator",
+     "xal": "Premise/ThoroughfareNumber",
+     "schema": "streetAddress"
+    },
+    "L8": {
+     "name": "单元户室号",
+     "required": false,
+     "locn": "locatorDesignator",
+     "xal": "SubPremise"
+    },
+    "ALT": {
+     "name": "地块号 (替代 L6-L8)",
+     "required": false
+    },
+    "POBOX": {
+     "name": "专用信箱号+分信箱号 (§6.4.2 替代结构)",
+     "required": false
+    }
+   },
+   "bnf_gbt_6_2": "通用地址数据类别 ::= <行政区划名> [ < { [街路巷/片区/村/社区名] | [院门/楼址] } > [单元户室号] ] | [地块号]",
+   "bnf_gbt_6_4_2": "专用信箱地址 ::= <行政区划名> [街路巷/片区名] <专用信箱代号> [分信箱号]",
+   "value_type": "AddressComponentValueType (§5.4.3 表14: 缺省值/可替换组分值等)"
+  },
+  "Store": {
+   "gbt": "AddressableObject 的零售子类 (本体外扩, 吸收 GS1 GLN + schema:Store + GoodRelations)",
+   "parent": "AddressableObject",
+   "properties": {
+    "store_code": "企业内唯一编码 (对齐 GS1 GLN; schema:branchCode)",
+    "brand": "品牌 (Libpostal house_name 启发; GoodRelations gr:BusinessEntity)",
+    "channel": "渠道 (零售/餐饮/酒店…)",
+    "otm_grade": "OTM等级等业务属性 (GDSN 位置属性启发)",
+    "availableAtOrFrom": "门店-商品供货关系 (GoodRelations)"
+   },
+   "relation": "Company --hasSite--> Store --siteAddress--> Address (euBusinessGraph 三层)"
+  },
+  "AddressableObject": {
+   "gbt": "5.2 可编配地址对象类: 可编配地址、具有固定位置的空间对象 (§3.2)"
+  },
+  "ReferenceObject": {
+   "gbt": "5.2 参照对象类 (GM_Object, 引 GB/T 23707/ISO 19107)",
+   "implementation": "GeoSPARQL geo:Feature/Geometry; 组分关联规则(§7.3): 道路名→道路中心线, 门牌/楼址→建筑物"
+  },
+  "AddressMetadata": {
+   "gbt": "5.2 地址元数据类: 起源/生成/变更/维护机构 (§3.4 地址来源 address provenance)",
+   "lifecycle": "AddressStatus + AddressLifecycleStage (§5.4 表15-17: 活动/预留/未使用/历史/未知)"
+  },
+  "AddressSpecification": {
+   "gbt": "5.2 地址引用标准类: 引用的法律法规和标准"
+  },
+  "AddressAlias": {
+   "gbt": "GB/T 未明确; 采 ISO 19160-1 AddressAlias (更名/合并/历史)",
+   "reason": "门店更名与合并是快消场景高频事件"
+  }
+ },
+ "quality_dimensions": {
+  "gbt_36344": [
+   "规范性",
+   "完整性",
+   "准确性",
+   "一致性",
+   "时效性",
+   "可访问性"
+  ],
+  "zaveri_six": [
+   "accuracy",
+   "consistency",
+   "conciseness",
+   "completeness",
+   "conformance",
+   "availability"
+  ],
+  "geogov_four_layer": {
+   "L1_结构质量": "映射 完整性 (GB/T 35639 组分完整度)",
+   "L2_坐标质量": "映射 准确性/一致性 (坐标坍缩/精度画像)",
+   "L3_一致性": "映射 一致性/准确性 (地址↔坐标↔POI 三方)",
+   "L4_证据链": "映射 可追溯性 (PROV-O)"
+  }
+ },
+ "governance_bindings": {
+  "external_sources": [
+   "腾讯逆地理编码 ws/geocoder/v1",
+   "腾讯 POI 关联 poi_association/v1 (reliability/invalid_status)",
+   "腾讯 suggestion (补充信号)",
+   "高德 regeo (独立第二源, 99.8% 与腾讯一致)",
+   "DataV GeoAtlas 边界",
+   "民政部 Xzqh20251231 码表"
+  ],
+  "sampling": "GB/T 2828.1 (N=1070→字码J→n=80, AQL2.5→Ac=5/Re=6)"
+ },
+ "instance_count": 1070,
+ "instances_ref": "ontology/ontology_instances.jsonl",
+ "pending_transcription": {
+  "pages": [
+   7,
+   15,
+   18,
+   19,
+   21,
+   22
+  ],
+  "note": "视觉转写服务对6页持续超时; 其中§6.2/6.3通用地址BNF以五源交叉印证版为准(与已转写§6.4.2句式同构), 余为表格页",
+  "action": "换OCR引擎后补录, 不阻塞本体使用"
+ }
+}

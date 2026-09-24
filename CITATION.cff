@@ -1,0 +1,9 @@
+cff-version: 1.2.0
+message: "If you use GeoGov, please cite it as follows."
+title: GeoGov — Geospatial Data Governance
+type: software
+authors:
+  - name: TopPrism
+repository-code: "https://github.com/topprismdata/geospatial-data-governance"
+license: MIT
+date-released: "2026-09-24"

@@ -1,0 +1,21 @@
+topprism:
+  purpose:
+    - world-model
+    - data-governance
+  capability: geospatial-data-governance
+  platform_layer: trusted-world-state
+  maturity: applied
+  evidence:
+    type: anonymized-operational-data
+    scope: >
+      Formal DQ evaluation on 1,070 retail locations (Wuhu sample);
+      pipeline scale-exercised on 118,891 store master records.
+      Public release excludes customer-identifiable data.
+  related:
+    - prism-ontology
+    - spatial-decision-intelligence
+  product_context:
+    - spatial-intelligence
+    - data-quality
+    - world-model-integrity
+  customer_data_in_repo: false
