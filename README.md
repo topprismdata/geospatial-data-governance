@@ -102,6 +102,8 @@ GeoGov 重点做好四件事:
   质量评分卡 · 异常地图 · 整改清单
 ```
 
+架构全景图(纯 HTML,无外部依赖):[docs/architecture_diagram.html](docs/architecture_diagram.html)
+
 ## 6. What you provide / What you get
 
 **最小输入**——一份 Excel / CSV:实体或门店 ID、经度、纬度、地址、省/市/区县等行政归属。

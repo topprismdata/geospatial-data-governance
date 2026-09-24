@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>GeoGov 产品架构图</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    min-height: 100%;
+    background: #050b14;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+                 "Microsoft YaHei", "Noto Sans CJK SC", Arial, sans-serif;
+  }
+  body {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 18px;
+  }
+
+  .canvas {
+    position: relative;
+    width: 1200px;
+    height: 800px;
+    overflow: hidden;
+    color: #f6f8fb;
+    background:
+      radial-gradient(circle at 18% 20%, rgba(48, 111, 255, 0.10), transparent 28%),
+      radial-gradient(circle at 78% 55%, rgba(43, 201, 158, 0.08), transparent 30%),
+      linear-gradient(180deg, #0a1424 0%, #07101d 55%, #050b14 100%);
+    border: 1px solid rgba(255,255,255,0.06);
+    box-shadow: 0 28px 70px rgba(0,0,0,0.35);
+  }
+
+  .title {
+    position: absolute;
+    left: 58px;
+    top: 40px;
+    font-size: 34px;
+    font-weight: 760;
+    letter-spacing: -0.8px;
+  }
+  .subtitle {
+    position: absolute;
+    left: 60px;
+    top: 89px;
+    font-size: 16px;
+    color: #9fb0c7;
+    letter-spacing: .2px;
+  }
+  .tag {
+    position: absolute;
+    right: 58px;
+    top: 48px;
+    padding: 8px 13px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.055);
+    border: 1px solid rgba(255,255,255,0.08);
+    color: #a9b8cc;
+    font-size: 12px;
+  }
+
+  .section-label {
+    position: absolute;
+    top: 145px;
+    font-size: 12px;
+    color: #718198;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+  }
+  .label-input { left: 74px; }
+  .label-signals { left: 336px; }
+  .label-decision { left: 737px; }
+  .label-output { left: 946px; }
+
+  .card {
+    position: absolute;
+    border-radius: 20px;
+    border: 1px solid rgba(255,255,255,0.085);
+    background: rgba(255,255,255,0.04);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.025), 0 14px 30px rgba(0,0,0,0.18);
+  }
+
+  .input-card {
+    left: 58px;
+    top: 220px;
+    width: 220px;
+    height: 332px;
+    padding: 26px 22px;
+    background:
+      linear-gradient(180deg, rgba(61,119,255,0.12), rgba(255,255,255,0.035));
+  }
+  .input-icon {
+    width: 54px;
+    height: 54px;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 27px;
+    background: rgba(78, 132, 255, 0.15);
+    border: 1px solid rgba(102, 150, 255, 0.22);
+    margin-bottom: 20px;
+  }
+  .input-card h2 {
+    margin: 0 0 9px;
+    font-size: 23px;
+  }
+  .input-card p {
+    margin: 0 0 19px;
+    font-size: 13px;
+    line-height: 1.7;
+    color: #9fb0c7;
+  }
+  .pill-row { margin-top: 14px; }
+  .pill {
+    display: inline-block;
+    margin: 0 6px 7px 0;
+    padding: 6px 9px;
+    border-radius: 10px;
+    font-size: 12px;
+    color: #c9d6e7;
+    background: rgba(255,255,255,0.055);
+    border: 1px solid rgba(255,255,255,0.07);
+  }
+  .optional {
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid rgba(255,255,255,0.07);
+    color: #7f91aa;
+    font-size: 12px;
+    line-height: 1.6;
+  }
+
+  .signals {
+    position: absolute;
+    left: 326px;
+    top: 184px;
+    width: 338px;
+    height: 436px;
+  }
+  .signal-card {
+    position: absolute;
+    width: 158px;
+    height: 188px;
+    border-radius: 18px;
+    padding: 18px 16px;
+    border: 1px solid rgba(255,255,255,0.09);
+    box-shadow: 0 12px 24px rgba(0,0,0,0.14);
+  }
+  .signal-card .emoji {
+    font-size: 26px;
+    margin-bottom: 11px;
+  }
+  .signal-card h3 {
+    font-size: 16px;
+    line-height: 1.35;
+    margin: 0 0 8px;
+  }
+  .signal-card p {
+    margin: 0;
+    color: #c3cfdd;
+    font-size: 12px;
+    line-height: 1.55;
+  }
+  .s1 { left: 0; top: 0; background: linear-gradient(145deg, rgba(59,130,246,.24), rgba(59,130,246,.08)); }
+  .s2 { right: 0; top: 0; background: linear-gradient(145deg, rgba(20,184,166,.22), rgba(20,184,166,.075)); }
+  .s3 { left: 0; bottom: 0; background: linear-gradient(145deg, rgba(139,92,246,.22), rgba(139,92,246,.075)); }
+  .s4 { right: 0; bottom: 0; background: linear-gradient(145deg, rgba(245,158,11,.22), rgba(245,158,11,.075)); }
+
+  .signal-foot {
+    position: absolute;
+    left: 2px;
+    bottom: -33px;
+    width: 334px;
+    text-align: center;
+    font-size: 11px;
+    color: #6f829b;
+  }
+
+  .funnel-wrap {
+    position: absolute;
+    left: 710px;
+    top: 238px;
+    width: 195px;
+    height: 310px;
+  }
+  .funnel {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 195px;
+    height: 228px;
+    clip-path: polygon(0 0, 100% 0, 70% 58%, 60% 58%, 60% 100%, 40% 100%, 40% 58%, 30% 58%);
+    background: linear-gradient(180deg, rgba(46,209,159,.30) 0%, rgba(245,183,74,.27) 49%, rgba(244,95,95,.31) 100%);
+    border: 1px solid rgba(255,255,255,.10);
+    filter: drop-shadow(0 16px 24px rgba(0,0,0,.24));
+  }
+  .funnel-title {
+    position: absolute;
+    left: 21px;
+    top: 28px;
+    width: 153px;
+    text-align: center;
+    font-size: 18px;
+    font-weight: 720;
+  }
+  .funnel-copy {
+    position: absolute;
+    left: 28px;
+    top: 64px;
+    width: 140px;
+    text-align: center;
+    font-size: 12px;
+    line-height: 1.55;
+    color: #c9d6e3;
+  }
+  .grade-row {
+    position: absolute;
+    top: 244px;
+    left: 0;
+    width: 195px;
+    display: flex;
+    justify-content: space-between;
+    gap: 6px;
+  }
+  .grade {
+    flex: 1;
+    border-radius: 10px;
+    padding: 8px 5px;
+    text-align: center;
+    font-size: 11px;
+    border: 1px solid rgba(255,255,255,.07);
+    background: rgba(255,255,255,.04);
+  }
+  .g1 { color: #7ae5bd; }
+  .g2 { color: #f3c567; }
+  .g3 { color: #ff8d8d; }
+
+  .outputs {
+    position: absolute;
+    left: 948px;
+    top: 192px;
+    width: 198px;
+  }
+  .output-card {
+    position: relative;
+    width: 198px;
+    height: 124px;
+    margin-bottom: 16px;
+    padding: 17px 16px 15px 17px;
+    border-radius: 17px;
+    background: rgba(255,255,255,0.045);
+    border: 1px solid rgba(255,255,255,0.085);
+  }
+  .output-card .topline {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    margin-bottom: 9px;
+  }
+  .output-card .oi {
+    width: 33px;
+    height: 33px;
+    border-radius: 10px;
+    background: rgba(255,255,255,.07);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+  }
+  .output-card h3 {
+    margin: 0;
+    font-size: 15px;
+  }
+  .output-card p {
+    margin: 0;
+    font-size: 11.5px;
+    line-height: 1.5;
+    color: #96a8bf;
+  }
+  .output-card strong {
+    color: #dce7f4;
+    font-weight: 650;
+  }
+
+  .callout {
+    position: absolute;
+    left: 58px;
+    right: 54px;
+    top: 657px;
+    height: 82px;
+    display: flex;
+    align-items: center;
+    padding: 0 24px;
+    border-radius: 18px;
+    background: linear-gradient(90deg, rgba(255,255,255,.045), rgba(255,255,255,.025));
+    border: 1px solid rgba(255,255,255,.07);
+  }
+  .callout .kicker {
+    font-size: 11px;
+    color: #70839a;
+    letter-spacing: 1.2px;
+    margin-bottom: 6px;
+  }
+  .callout .big {
+    font-size: 18px;
+    font-weight: 680;
+  }
+  .callout .big span { color: #8eb8ff; }
+  .callout .rule {
+    margin-left: auto;
+    max-width: 430px;
+    font-size: 12px;
+    color: #899bb2;
+    line-height: 1.55;
+    text-align: right;
+  }
+
+  .footer {
+    position: absolute;
+    left: 0;
+    bottom: 18px;
+    width: 100%;
+    text-align: center;
+    font-size: 12px;
+    color: #55667b;
+    letter-spacing: .4px;
+  }
+
+  svg.flow {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 1200px;
+    height: 800px;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .input-card, .signals, .funnel-wrap, .outputs, .callout, .title, .subtitle, .tag, .section-label, .footer {
+    z-index: 2;
+  }
+
+  .mini-map {
+    margin-top: 10px;
+    height: 39px;
+    border-radius: 9px;
+    border: 1px solid rgba(255,255,255,.065);
+    background:
+      linear-gradient(90deg, transparent 48%, rgba(255,255,255,.06) 49%, rgba(255,255,255,.06) 51%, transparent 52%),
+      linear-gradient(135deg, rgba(59,130,246,.13), rgba(20,184,166,.08));
+    position: relative;
+    overflow: hidden;
+  }
+  .mini-map:before, .mini-map:after {
+    content: "";
+    position: absolute;
+    top: 11px;
+    width: 9px;
+    height: 9px;
+    border-radius: 2px;
+    border: 1px dashed rgba(255,255,255,.45);
+  }
+  .mini-map:before { left: 28px; }
+  .mini-map:after { right: 28px; border-color: rgba(255,125,125,.75); }
+
+  @media (max-width: 1236px) {
+    body { justify-content: flex-start; }
+  }
+</style>
+</head>
+<body>
+<div class="canvas">
+  <div class="title">GeoGov：把“坐标能不能信”变成可执行的整改任务</div>
+  <div class="subtitle">上传门店清单 → 多源独立证据交叉验证 → 直接拿到治理结论</div>
+  <div class="tag">面向销售总监 / 城市经理 / 销售运营</div>
+
+  <div class="section-label label-input">01 · 输入</div>
+  <div class="section-label label-signals">02 · 自动分析</div>
+  <div class="section-label label-decision">03 · 风险分级</div>
+  <div class="section-label label-output">04 · 输出</div>
+
+  <svg class="flow" viewBox="0 0 1200 800" aria-hidden="true">
+    <defs>
+      <marker id="arrow" markerWidth="10" markerHeight="10" refX="7.5" refY="3.5" orient="auto" markerUnits="strokeWidth">
+        <path d="M0,0 L0,7 L8,3.5 z" fill="#61758f"/>
+      </marker>
+    </defs>
+    <path d="M278 386 C296 386, 304 386, 324 386" stroke="#61758f" stroke-width="2" fill="none" marker-end="url(#arrow)" opacity=".85"/>
+    <path d="M665 386 C684 386, 694 386, 707 386" stroke="#61758f" stroke-width="2" fill="none" marker-end="url(#arrow)" opacity=".85"/>
+    <path d="M906 386 C924 386, 932 386, 945 386" stroke="#61758f" stroke-width="2" fill="none" marker-end="url(#arrow)" opacity=".85"/>
+  </svg>
+
+  <div class="card input-card">
+    <div class="input-icon">📄</div>
+    <h2>门店清单</h2>
+    <p>把现有 CRM 数据直接导出来，不需要先做 GIS 加工。</p>
+    <div class="pill-row">
+      <span class="pill">门店编码</span>
+      <span class="pill">经纬度</span>
+      <span class="pill">地址</span>
+      <span class="pill">区县</span>
+    </div>
+    <div class="optional">
+      可选：提供门店名称等辅助字段，提升交叉验证置信度。
+    </div>
+  </div>
+
+  <div class="signals">
+    <div class="signal-card s1">
+      <div class="emoji">📍</div>
+      <h3>位置是否说得通</h3>
+      <p>坐标落到的区域，和 CRM 填报的区域是不是同一个地方。</p>
+    </div>
+    
+    <div class="signal-card s3">
+      <div class="emoji">🗺️</div>
+      <h3>外部地图交叉验证</h3>
+      <p>不同地图数据源是否给出一致结论，降低单一来源误判。</p>
+    </div>
+    <div class="signal-card s4">
+      <div class="emoji">👥</div>
+      <h3>群体异常检测</h3>
+      <p>发现多家门店共享同一点、整批导入偏差等系统性问题。</p>
+    </div>
+    <div class="signal-foot">每个信号独立判断 · 不靠单一规则直接定罪</div>
+  </div>
+
+  <div class="funnel-wrap">
+    <div class="funnel"></div>
+    <div class="funnel-title">证据交叉投票</div>
+    <div class="funnel-copy">多个独立证据越一致，整改优先级越高。</div>
+    <div class="grade-row">
+      <div class="grade g1">正常</div>
+      <div class="grade g2">待核实</div>
+      <div class="grade g3">优先整改</div>
+    </div>
+  </div>
+
+  <div class="outputs">
+    <div class="output-card">
+      <div class="topline">
+        <div class="oi">📊</div>
+        <h3>质量评分卡</h3>
+      </div>
+      <p>一眼看懂：<strong>多少店正常、多少店可疑、问题集中在哪。</strong></p>
+    </div>
+
+    <div class="output-card">
+      <div class="topline">
+        <div class="oi">↔️</div>
+        <h3>证据链报告</h3>
+      </div>
+      <p><strong>每个判断都有证据</strong> 哪个信号、哪个数据源、什么时间、置信度多少。</p>
+      <div class="mini-map"></div>
+    </div>
+
+    <div class="output-card">
+      <div class="topline">
+        <div class="oi">✅</div>
+        <h3>整改清单</h3>
+      </div>
+      <p>按“最该先修”排序，每条都说明<strong>为什么可疑、建议怎么处理。</strong></p>
+    </div>
+  </div>
+
+  <div class="callout">
+    <div>
+      <div class="kicker">GEO GOV 的核心不是“多检查几条规则”</div>
+      <div class="big">而是把技术判断翻译成：<span>这家店要不要修、为什么、先修哪一批。</span></div>
+    </div>
+    <div class="rule">只看证据链，不拿单条规则定罪；缺数据标记为待核实，而不是伪装成通过。</div>
+  </div>
+
+  <div class="footer">技术细节见 docs/</div>
+</div>
+</body>
+</html>
