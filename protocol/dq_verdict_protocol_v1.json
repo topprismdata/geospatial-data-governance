@@ -3,7 +3,7 @@
   "$id": "https://zcode.local/protocol/dq_verdict_protocol_v1.json",
   "title": "TopPrism DQ Verdict Protocol v1",
   "description": "模块①数据管理统一裁决协议。对齐 spatial-source-integrity (SSI) GateDecision 的 4 态准入动作与 5 态治理处置；GeoGov batch_verdict、spatial_ca 五门状态机、SRAF validate_region_pack、mousheng 置信降级统一映射到本协议词汇表。规则/证据/工单三 ID 命名空间经 prism-ontology MS-PROP-023 提案发布。",
-  "protocol_version": "1.0.0",
+  "protocol_version": "1.0.1",
   "authored": "2026-10-12",
   "$ref": "#/$defs/GateDecision",
   "authority": {
@@ -14,23 +14,40 @@
   "$defs": {
     "AdmissionAction": {
       "type": "string",
-      "enum": ["ALLOW", "ALLOW_WITH_LIMITS", "REVIEW", "BLOCK"],
+      "enum": [
+        "ALLOW",
+        "ALLOW_WITH_LIMITS",
+        "REVIEW",
+        "BLOCK"
+      ],
       "description": "统一准入动作，对齐 SSI AdmissionAction。SSI 原名 BLOCK_FOR_PROFILE 映射为 BLOCK，profile 范围记录于 scope 字段。"
     },
     "GovernanceDisposition": {
       "type": "string",
-      "enum": ["NONE", "QUARANTINE", "SUSPEND_SOURCE", "REPAIR_REQUIRED", "INVESTIGATION_REQUIRED"],
+      "enum": [
+        "NONE",
+        "QUARANTINE",
+        "SUSPEND_SOURCE",
+        "REPAIR_REQUIRED",
+        "INVESTIGATION_REQUIRED"
+      ],
       "description": "统一治理处置，对齐 SSI GovernanceDisposition。SSI 原名 QUARANTINE_SCOPE 映射为 QUARANTINE，范围记录于 scope 字段。处置作用于数据源/批次，绝不静默改写原始记录。"
     },
     "Severity": {
       "type": "string",
-      "enum": ["C0", "C1", "C2", "C3"],
-      "description": "GeoGov 错漏分级（GB/T 18316/24356 参照）。C0 致命 / C1 关键(Hard Gate) / C2 主要 / C3 一般。"
+      "enum": [
+        "C0",
+        "C1",
+        "C2",
+        "C3",
+        "UNSPECIFIED"
+      ],
+      "description": "GeoGov 错漏分级（GB/T 18316/24356 参照）。C0 致命 / C1 关键(Hard Gate) / C2 主要 / C3 一般。 UNSPECIFIED: 评估方注册表未定义 C 分级时显式声明(如 SSI 必评项)，禁用静默缺省。"
     },
     "RuleID": {
       "type": "string",
-      "pattern": "^DQ-R[0-9]{3}@dq-rules-v[0-9]+$",
-      "description": "规则实例标识。示例: DQ-R018@dq-rules-v1。规则语义冻结于 dq_rules_v1_frozen.json 对应版本。"
+      "pattern": "^[A-Z][A-Z0-9]*(-[A-Z0-9]+)*@[a-z][a-z0-9-]*-v[0-9]+([.][0-9]+)*$",
+      "description": "规则实例标识，泛化格式 <REGISTRY>-<CODE>@<registry-slug>-v<version>。示例: DQ-R018@dq-rules-v1 (GeoGov 冻结规则), SSI-REQ-RESIDUAL@ssi-gate-v0.1 (SSI 必评项)。各注册表语义由其冻结版本文件定义。"
     },
     "EvidenceID": {
       "type": "string",
@@ -44,39 +61,109 @@
     },
     "RuleEvaluation": {
       "type": "object",
-      "required": ["rule_id", "verdict", "severity"],
+      "required": [
+        "rule_id",
+        "verdict",
+        "severity"
+      ],
       "properties": {
-        "rule_id": { "$ref": "#/$defs/RuleID" },
-        "verdict": { "type": "string", "enum": ["PASS", "FAIL", "NOT_APPLICABLE"] },
-        "severity": { "$ref": "#/$defs/Severity" },
-        "hard_gate": { "type": "boolean" },
-        "evidence_ids": { "type": "array", "items": { "$ref": "#/$defs/EvidenceID" } },
-        "measured": { "description": "规则测量值/命中明细，结构由规则实现层定义" },
-        "evaluated_at": { "type": "string", "format": "date-time" }
+        "rule_id": {
+          "$ref": "#/$defs/RuleID"
+        },
+        "verdict": {
+          "type": "string",
+          "enum": [
+            "PASS",
+            "FAIL",
+            "NOT_APPLICABLE"
+          ]
+        },
+        "severity": {
+          "$ref": "#/$defs/Severity"
+        },
+        "hard_gate": {
+          "type": "boolean"
+        },
+        "evidence_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/EvidenceID"
+          }
+        },
+        "measured": {
+          "description": "规则测量值/命中明细，结构由规则实现层定义"
+        },
+        "evaluated_at": {
+          "type": "string",
+          "format": "date-time"
+        }
       }
     },
     "GateDecision": {
       "type": "object",
-      "required": ["action", "disposition", "evaluations", "decided_at"],
+      "required": [
+        "action",
+        "disposition",
+        "evaluations",
+        "decided_at"
+      ],
       "properties": {
-        "protocol_version": { "const": "1.0.0" },
-        "action": { "$ref": "#/$defs/AdmissionAction" },
-        "disposition": { "$ref": "#/$defs/GovernanceDisposition" },
+        "protocol_version": {
+          "const": "1.0.0"
+        },
+        "action": {
+          "$ref": "#/$defs/AdmissionAction"
+        },
+        "disposition": {
+          "$ref": "#/$defs/GovernanceDisposition"
+        },
         "scope": {
           "type": "object",
           "properties": {
-            "profile": { "type": "string", "description": "适用 profile，如 cn-retail-wuhu" },
-            "source": { "type": "string", "description": "数据源/批次标识" },
-            "usage_limits": { "type": "array", "items": { "type": "string" }, "description": "ALLOW_WITH_LIMITS 时的使用限制清单" }
+            "profile": {
+              "type": "string",
+              "description": "适用 profile，如 cn-retail-wuhu"
+            },
+            "source": {
+              "type": "string",
+              "description": "数据源/批次标识"
+            },
+            "usage_limits": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "ALLOW_WITH_LIMITS 时的使用限制清单"
+            }
           }
         },
-        "evaluations": { "type": "array", "items": { "$ref": "#/$defs/RuleEvaluation" } },
-        "hard_gates_all_pass": { "type": "boolean" },
-        "rationale": { "type": "string" },
-        "decided_by": { "type": "string" },
-        "decided_at": { "type": "string", "format": "date-time" },
-        "immutable": { "const": true, "description": "GateDecision 签发后不可变；修正以新决策+SUPERSEDED 引用表达" },
-        "supersedes": { "type": "string", "description": "被取代的前序决策标识" }
+        "evaluations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/RuleEvaluation"
+          }
+        },
+        "hard_gates_all_pass": {
+          "type": "boolean"
+        },
+        "rationale": {
+          "type": "string"
+        },
+        "decided_by": {
+          "type": "string"
+        },
+        "decided_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "immutable": {
+          "const": true,
+          "description": "GateDecision 签发后不可变；修正以新决策+SUPERSEDED 引用表达"
+        },
+        "supersedes": {
+          "type": "string",
+          "description": "被取代的前序决策标识"
+        }
       }
     }
   },
@@ -84,12 +171,27 @@
     "description": "各仓现有裁决词汇 → 本协议统一词汇。各仓本地枚举保留，对外交换时使用本协议。",
     "spatial_source_integrity": {
       "status": "baseline",
-      "AdmissionAction": { "ALLOW": "ALLOW", "ALLOW_WITH_LIMITS": "ALLOW_WITH_LIMITS", "REVIEW": "REVIEW", "BLOCK_FOR_PROFILE": "BLOCK" },
-      "GovernanceDisposition": { "NONE": "NONE", "QUARANTINE_SCOPE": "QUARANTINE", "SUSPEND_SOURCE": "SUSPEND_SOURCE", "REPAIR_REQUIRED": "REPAIR_REQUIRED", "INVESTIGATION_REQUIRED": "INVESTIGATION_REQUIRED" }
+      "AdmissionAction": {
+        "ALLOW": "ALLOW",
+        "ALLOW_WITH_LIMITS": "ALLOW_WITH_LIMITS",
+        "REVIEW": "REVIEW",
+        "BLOCK_FOR_PROFILE": "BLOCK"
+      },
+      "GovernanceDisposition": {
+        "NONE": "NONE",
+        "QUARANTINE_SCOPE": "QUARANTINE",
+        "SUSPEND_SOURCE": "SUSPEND_SOURCE",
+        "REPAIR_REQUIRED": "REPAIR_REQUIRED",
+        "INVESTIGATION_REQUIRED": "INVESTIGATION_REQUIRED"
+      }
     },
     "geospatial_data_governance": {
       "status": "mapped",
-      "batch_verdict": { "PASS": "ALLOW", "有条件合格": "ALLOW_WITH_LIMITS", "不合格": "BLOCK" },
+      "batch_verdict": {
+        "PASS": "ALLOW",
+        "有条件合格": "ALLOW_WITH_LIMITS",
+        "不合格": "BLOCK"
+      },
       "note": "batch_verdict 三态文本定义见 rules/dq_rules_v1_frozen.json；规则级 PASS/FAIL 映射 RuleEvaluation.verdict"
     },
     "spatial_ca_benchmark": {
@@ -109,7 +211,11 @@
     },
     "mousheng_outlet_insight": {
       "status": "mapped",
-      "confidence_tier": { "High": "ALLOW", "Medium": "ALLOW_WITH_LIMITS", "Low": "ALLOW_WITH_LIMITS" },
+      "confidence_tier": {
+        "High": "ALLOW",
+        "Medium": "ALLOW_WITH_LIMITS",
+        "Low": "ALLOW_WITH_LIMITS"
+      },
       "note": "覆盖率<20% 强制降级 Low 对应 ALLOW_WITH_LIMITS(附限制：不得用于配额圈选等强结论)"
     }
   },
