@@ -197,14 +197,18 @@ GeoFeature → Observation → Evidence → QualityFinding → RuleEvaluation �
 
 ## 13. Repository direction
 
+> **状态说明（2026-10-12）**：本仓当前为**规范仓库**——交付物为 DQ 规则库、地址本体与治理文档；
+> 以下目录结构与包名/CLI 为**规划中的执行层方向，尚未实现**（无 `src/`、无 `profiles/`、无 tests/CI）。
+> 成熟度见 `topprism.yaml`（maturity: specification-frozen）。
+
 ```
-src/geogov/ (core · providers · signals · rules)
-profiles/ (cn · retail)
-examples/ · docs/
+src/geogov/ (core · providers · signals · rules)   [规划中，未实现]
+profiles/ (cn · retail)                            [规划中，未实现]
+examples/ · docs/                                  [部分存在：docs/]
 topprism.yaml · CITATION.cff
 ```
 
-仓库 `topprismdata/geospatial-data-governance`(随组织 kebab-case 命名惯例),包名 `geogov`,CLI `geogov`,License **MIT**。
+仓库 `topprismdata/geospatial-data-governance`(随组织 kebab-case 命名惯例),未来包名 `geogov`、CLI `geogov`（均未实现），License **MIT**。
 
 ## GeoGov in one sentence
 

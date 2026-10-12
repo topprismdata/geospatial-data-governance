@@ -1,6 +1,6 @@
 {
  "$schema": "https://json-schema.org/draft/2020-12/schema",
- "$id": "https://zcode.local/ontology/address_ontology_v0.9.json",
+ "$id": "https://zcode.local/ontology/address_ontology_v1.0.json",
  "title": "GeoGov 地址本体 (基于 GB/T 35639-2017, 对齐 ISO 19160-1/LOCN/xAL/GS1)",
  "version": "1.0",
  "date": "2026-09-17",
