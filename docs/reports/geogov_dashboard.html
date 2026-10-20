@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>GeoGov · DQ 裁决台账看板</title>
+<style>
+:root{--ink:#1a2332;--paper:#f7f5f0;--card:#fff;--line:#d8d3c8;--accent:#0f4c81;
+--c0:#b42318;--c1:#d97706;--c2:#0e7490;--c3:#6b7280;--ok:#15803d;--warn:#b45309;--bad:#b42318}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;background:var(--paper);color:var(--ink);font-size:14px;line-height:1.55}
+header{background:var(--ink);color:#fff;padding:18px 28px}
+header h1{font-size:19px;font-weight:600;letter-spacing:.5px}
+header .meta{font-size:12px;opacity:.75;margin-top:4px}
+nav{display:flex;gap:2px;background:#e9e5db;border-bottom:1px solid var(--line);padding:0 20px;position:sticky;top:0;z-index:5}
+nav button{border:none;background:none;padding:11px 16px;font-size:14px;cursor:pointer;border-bottom:3px solid transparent;color:#5a6270}
+nav button.active{border-bottom-color:var(--accent);color:var(--accent);font-weight:600;background:#fff}
+main{max-width:1180px;margin:0 auto;padding:22px 20px 60px}
+section{display:none}section.show{display:block}
+h2{font-size:16px;margin:6px 0 14px;color:var(--accent)}
+h3{font-size:13.5px;margin:18px 0 8px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:16px 18px;margin-bottom:14px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{border-bottom:1px solid var(--line);padding:7px 9px;text-align:left;vertical-align:top}
+th{background:#efeadf;font-weight:600;white-space:nowrap}
+.badge{display:inline-block;padding:1px 8px;border-radius:10px;font-size:11.5px;font-weight:600;color:#fff}
+.bC0{background:var(--c0)}.bC1{background:var(--c1)}.bC2{background:var(--c2)}.bC3{background:var(--c3)}
+.hg{color:var(--bad);font-weight:700}
+.chip{display:inline-block;border:1px solid var(--line);border-radius:6px;padding:4px 10px;margin:3px 4px 3px 0;background:#fbfaf7;font-size:12.5px}
+.chip b{color:var(--accent)}
+.req{color:var(--bad);font-weight:700}
+.muted{color:#6a7280;font-size:12px}
+.inv{border-left:4px solid var(--accent);padding:8px 12px;margin:8px 0;background:#f2f6fa;border-radius:0 6px 6px 0;font-size:13px}
+.vmatrix td{text-align:center}.vmatrix th{text-align:center}
+.vmatrix td.cell{cursor:pointer;font-weight:700;font-size:15px}
+.vmatrix td.cell:hover{outline:2px solid var(--accent)}
+select,input[type=search]{font:inherit;padding:7px 10px;border:1px solid var(--line);border-radius:6px;background:#fff;width:100%}
+.rowpair{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:10px}
+.rowcard{border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.rowcard .hd{padding:7px 12px;font-weight:600;font-size:12.5px;color:#fff}
+.rowcard.bad .hd{background:var(--bad)}.rowcard.good .hd{background:var(--ok)}
+.rowcard table td{border-bottom:1px solid #eee;padding:5px 12px}
+.rowcard td.k{color:#6a7280;width:130px;font-size:12px}
+td.diff{background:#fdeceb;font-weight:700}
+.good td.diff{background:#e9f7ee}
+pre{background:#0f1720;color:#d7e3ee;padding:14px;border-radius:8px;font-size:12px;overflow:auto;line-height:1.5}
+.kv{font-size:12.5px;color:#4a5260}
+footer{text-align:center;color:#8a8f98;font-size:11.5px;padding:18px}
+@media(max-width:860px){.grid2,.rowpair{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header>
+  <h1>GeoGov · 数据质量裁决台账看板</h1>
+  <div class="meta" id="hdr-meta"></div>
+</header>
+<nav>
+  <button data-t="t1" class="active">① 裁决契约</button>
+  <button data-t="t2">② 31 规则注册表</button>
+  <button data-t="t3">③ 词汇四仓对照</button>
+  <button data-t="t4">④ 正反例浏览</button>
+</nav>
+<main>
+
+<section id="t1" class="show">
+  <h2>GateDecision 裁决对象（协议 v<span id="pv"></span>）</h2>
+  <div class="grid2">
+    <div class="card"><h3>字段契约（<span class="req">*</span> = 必填）</h3><table id="gate-fields"></table>
+      <p class="muted" style="margin-top:8px">决策不可变；修正以新决策 + supersedes 表达。</p></div>
+    <div class="card"><h3>五条不变量（违例即协议错误）</h3><div id="invariants"></div>
+      <h3>批次三态</h3><p class="kv" id="batch-verdict"></p></div>
+  </div>
+  <div class="card"><h3>示例裁决（演示数据，非真实批次记录）</h3><pre id="demo-decision"></pre></div>
+</section>
+
+<section id="t2">
+  <h2>V1-FROZEN 规则注册表 · <span id="rule-count"></span> 条（HardGate <span id="hg-count"></span> 条）</h2>
+  <div class="card"><h3>维度 × 严重级 分布（点击单元格过滤下方清单）</h3>
+    <table class="vmatrix" id="vmatrix"></table><div id="vm-note" class="muted" style="margin-top:6px"></div></div>
+  <div class="card"><table id="rules-table"></table></div>
+</section>
+
+<section id="t3">
+  <h2>受控词表与四仓对齐</h2>
+  <div class="card"><h3>AdmissionAction（准入 4 态）</h3><div id="enum-admission"></div>
+    <h3>GovernanceDisposition（处置 5 态）</h3><div id="enum-disposition"></div>
+    <h3>Severity（分级）</h3><div id="enum-severity"></div></div>
+  <div class="card"><h3>词汇对照（<span id="vocab-desc"></span>）</h3>
+    <table id="vocab-table"></table></div>
+</section>
+
+<section id="t4">
+  <h2>规则正反例（31 组行对，来自 rule_samples_v1.jsonl）</h2>
+  <div class="card">
+    <input type="search" id="sample-search" placeholder="搜索规则号 / 字段 / 文本…">
+    <select id="sample-select" size="14" style="margin-top:10px;height:auto"></select>
+    <div id="sample-detail"></div>
+  </div>
+</section>
+
+</main>
+<footer id="foot"></footer>
+<script>
+const D = {"protocol_version":"1.0.1","authored":"2026-10-12","gate_props":{"protocol_version":{"const":"1.0.1"},"action":{"$ref":"#/$defs/AdmissionAction"},"disposition":{"$ref":"#/$defs/GovernanceDisposition"},"scope":{"type":"object","properties":{"profile":{"type":"string","description":"适用 profile，如 cn-retail-wuhu"},"source":{"type":"string","description":"数据源/批次标识"},"usage_limits":{"type":"array","items":{"type":"string"},"description":"ALLOW_WITH_LIMITS 时的使用限制清单"}}},"evaluations":{"type":"array","items":{"$ref":"#/$defs/RuleEvaluation"}},"hard_gates_all_pass":{"type":"boolean"},"rationale":{"type":"string"},"decided_by":{"type":"string"},"decided_at":{"type":"string","format":"date-time"},"immutable":{"const":true,"description":"GateDecision 签发后不可变；修正以新决策+SUPERSEDED 引用表达"},"supersedes":{"type":"string","description":"被取代的前序决策标识"}},"gate_required":["action","disposition","evaluations","decided_at"],"invariants":["fail-closed: 缺失必评证据 = BLOCK，不猜测","Hard Gate 任一 C1 失败 = BLOCK，覆盖任何 ALLOW 语义","BLOCK 永不发布；REVIEW 永不进生产","原始坐标/CRS/地址不被推断结果静默覆盖","决策不可变；修正以新决策 + supersedes 表达"],"vocab":{"description":"各仓现有裁决词汇 → 本协议统一词汇。各仓本地枚举保留，对外交换时使用本协议。","spatial_source_integrity":{"status":"baseline","AdmissionAction":{"ALLOW":"ALLOW","ALLOW_WITH_LIMITS":"ALLOW_WITH_LIMITS","REVIEW":"REVIEW","BLOCK_FOR_PROFILE":"BLOCK"},"GovernanceDisposition":{"NONE":"NONE","QUARANTINE_SCOPE":"QUARANTINE","SUSPEND_SOURCE":"SUSPEND_SOURCE","REPAIR_REQUIRED":"REPAIR_REQUIRED","INVESTIGATION_REQUIRED":"INVESTIGATION_REQUIRED"}},"geospatial_data_governance":{"status":"mapped","batch_verdict":{"PASS":"ALLOW","有条件合格":"ALLOW_WITH_LIMITS","不合格":"BLOCK"},"note":"batch_verdict 三态文本定义见 rules/dq_rules_v1_frozen.json；规则级 PASS/FAIL 映射 RuleEvaluation.verdict"},"spatial_ca_benchmark":{"status":"mapped","gate":{"PASSED":"ALLOW","PASSED_WITH_INVALID_ROWS_DROPPED":"ALLOW_WITH_LIMITS","INCLUDING_CONFIRMED_OUTLIER":"ALLOW_WITH_LIMITS","BLOCKED_BY_DATA_QUALITY":"BLOCK","STRUCTURE_ONLY":"ALLOW_WITH_LIMITS"},"note":"STRUCTURE_ONLY 限制=禁止绝对 km 结论；INCLUDING_CONFIRMED_OUTLIER 限制=带已确认离群点声明"},"sales_resource_allocation_framework":{"status":"mapped","validate_region_pack":"逐项快速失败；任一必填/枚举/坐标可解析失败 → BLOCK（含失败原因清单），全过 → 允许进入后续体检（非最终 ALLOW）"},"mousheng_outlet_insight":{"status":"mapped","confidence_tier":{"High":"ALLOW","Medium":"ALLOW_WITH_LIMITS","Low":"ALLOW_WITH_LIMITS"},"note":"覆盖率<20% 强制降级 Low 对应 ALLOW_WITH_LIMITS(附限制：不得用于配额圈选等强结论)"}},"enums":{"admission":["ALLOW","ALLOW_WITH_LIMITS","REVIEW","BLOCK"],"disposition":["NONE","QUARANTINE","SUSPEND_SOURCE","REPAIR_REQUIRED","INVESTIGATION_REQUIRED"],"severity":["C0","C1","C2","C3","UNSPECIFIED"]},"rules":[{"id":"R001","dim":"规范性","sub":"数据标准符合","field":"店编码","rule":"非空且为字符串编码","A":"符合记录数","B":"总记录数","threshold":1.0,"sev":"C1","hard_gate":true},{"id":"R002","dim":"规范性","sub":"数据标准符合","field":"店名","rule":"非空且长度>=2","A":"符合记录数","B":"总记录数","threshold":1.0,"sev":"C2","hard_gate":false},{"id":"R003","dim":"规范性","sub":"权威参考数据","field":"province","rule":"合法值=安徽省","A":"符合记录数","B":"总记录数","threshold":1.0,"sev":"C1","hard_gate":true},{"id":"R004","dim":"规范性","sub":"权威参考数据","field":"city","rule":"合法值=芜湖市","A":"符合记录数","B":"总记录数","threshold":1.0,"sev":"C1","hard_gate":true},{"id":"R005","dim":"规范性","sub":"权威参考数据","field":"区县名称/district","rule":"district∈民政部码表芜湖合法区县集合(Xzqh20251231)","A":"符合记录数","B":"总记录数","threshold":1.0,"sev":"C1","hard_gate":true},{"id":"R006","dim":"规范性","sub":"数据标准符合","field":"channel","rule":"∈约定渠道码表","A":"符合记录数","B":"总记录数","threshold":0.98,"sev":"C3","hard_gate":false},{"id":"R007","dim":"规范性","sub":"数据标准符合","field":"OTM等级","rule":"∈约定值域{A,B,C,PA,PB,PC}","A":"符合记录数","B":"适用(非空)记录数","threshold":0.98,"sev":"C3","hard_gate":false},{"id":"R008","dim":"规范性","sub":"数据标准符合","field":"lng","rule":"数值型且芜湖经度范围[117.5,119.0]","A":"符合记录数","B":"总记录数","threshold":1.0,"sev":"C1","hard_gate":true},{"id":"R009","dim":"规范性","sub":"数据标准符合","field":"lat","rule":"数值型且芜湖纬度范围[30.5,31.8]","A":"符合记录数","B":"总记录数","threshold":1.0,"sev":"C1","hard_gate":true},{"id":"R010","dim":"规范性","sub":"地址结构(GB/T35639 §6.2)","field":"customer_address","rule":"地址满足定位结构: 行政区划名+(街路巷名|院门楼址)","A":"满足记录数","B":"总记录数","threshold":0.98,"sev":"C2","hard_gate":false},{"id":"R011","dim":"完整性","sub":"元素完整","field":"店编码","rule":"非空非占位","A":"已赋值记录数","B":"总记录数","threshold":1.0,"sev":"C1","hard_gate":true},{"id":"R012","dim":"完整性","sub":"元素完整","field":"店名","rule":"非空非占位","A":"已赋值记录数","B":"总记录数","threshold":1.0,"sev":"C2","hard_gate":false},{"id":"R013","dim":"完整性","sub":"元素完整","field":"区县名称","rule":"非空非占位(区分'0'/'--'/'未知')","A":"已赋值记录数","B":"总记录数","threshold":0.995,"sev":"C2","hard_gate":false},{"id":"R014","dim":"完整性","sub":"元素完整","field":"地址","rule":"非空非占位","A":"已赋值记录数","B":"总记录数","threshold":0.995,"sev":"C2","hard_gate":false},{"id":"R015","dim":"完整性","sub":"元素完整","field":"经纬度","rule":"非空且≠(0,0)","A":"已赋值记录数","B":"总记录数","threshold":1.0,"sev":"C1","hard_gate":true},{"id":"R016","dim":"完整性","sub":"元素完整","field":"channel/OTM等级","rule":"必填字段有效赋值率","A":"已赋值元素数","B":"应赋值元素数","threshold":0.95,"sev":"C3","hard_gate":false},{"id":"R017","dim":"完整性","sub":"地址组分(GB/T35639三级指标)","field":"customer_address","rule":"具备可定位组分(街路巷名或院门/楼址, §6.2)","A":"具备记录数","B":"适用地址记录数","threshold":0.98,"sev":"C2","hard_gate":false},{"id":"R018","dim":"准确性","sub":"内容正确(位置)","field":"区县×坐标","rule":"填报区县=腾讯坐标反解adcode","A":"一致记录数","B":"成功反解记录数","threshold":0.98,"sev":"C2","hard_gate":true,"note":"命名: 填报区县-坐标空间位置一致率; 腾讯非绝对真值, 以高德交叉+缓冲带修正"},{"id":"R019","dim":"准确性","sub":"交叉验证","field":"坐标","rule":"高德反解adcode与填报一致(独立第二源)","A":"一致记录数","B":"成功反解记录数","threshold":0.98,"sev":"C2","hard_gate":false},{"id":"R020","dim":"准确性","sub":"POI空间对象匹配","field":"店名+坐标","rule":"poi_association命中且reliability>=0.8","A":"达标关联记录数","B":"总记录数","threshold":0.8,"sev":"C3","hard_gate":false},{"id":"R021","dim":"准确性","sub":"POI空间对象匹配","field":"POI官方adcode","rule":"命中记录中POI官方adcode=填报区","A":"一致记录数","B":"命中记录数","threshold":0.95,"sev":"C2","hard_gate":false},{"id":"R022","dim":"准确性","sub":"唯一性","field":"店编码","rule":"全表唯一","A":"唯一编码记录数","B":"总记录数","threshold":1.0,"sev":"C1","hard_gate":true},{"id":"R023","dim":"准确性","sub":"异常坐标复用","field":"lng/lat","rule":"不同店编码+不同地址+字节级同坐标+跨区县 → 异常复用","A":"—","B":"—","threshold":"异常复用记录数=0","sev":"C1","hard_gate":true,"metric":"负向: PinnedRate=异常复用店数/有坐标店数"},{"id":"R024","dim":"准确性","sub":"紧邻风险","field":"lng/lat","rule":"50米紧邻(不同店编码不同地址)","A":"—","B":"—","threshold":"风险信号, 不计分","sev":"C3","hard_gate":false},{"id":"R025","dim":"一致性","sub":"相同数据一致","field":"坐标","rule":"腾讯反解adcode=高德反解adcode","A":"一致记录数","B":"双源成功记录数","threshold":0.99,"sev":"C2","hard_gate":false},{"id":"R026","dim":"一致性","sub":"关联数据一致","field":"POI×坐标","rule":"POI官方adcode=坐标反解adcode(命中内)","A":"一致记录数","B":"双成功记录数","threshold":0.95,"sev":"C2","hard_gate":false},{"id":"R027","dim":"一致性","sub":"层级逻辑","field":"province×city×district","rule":"区县代码前4位=城市代码, 城市=芜湖","A":"符合记录数","B":"总记录数","threshold":1.0,"sev":"C1","hard_gate":false},{"id":"R028","dim":"时效性","sub":"现势性(证据受限)","field":"POI invalid_status","rule":"=-1 的比例作为现势性风险证据","A":"—","B":"—","threshold":"仅报告风险, 不判合格","sev":"C2","hard_gate":false,"note":"Coverage不足, 指标级记 N/A"},{"id":"R029","dim":"可访问性","sub":"可访问","field":"文件","rule":"xlsx可解析/UTF-8可读/字段可访问","A":"可访问元素","B":"应可访问元素","threshold":1.0,"sev":"C0","hard_gate":true,"note":"文件级检查"},{"id":"R030","dim":"完整性","sub":"记录完整","field":"整行","rule":"全部必填字段有效的记录占比","A":"完整记录数","B":"总记录数","threshold":0.98,"sev":"C2","hard_gate":false},{"id":"R031","dim":"一致性","sub":"跨源裁决","field":"不一致记录","rule":"腾讯≠填报时, POI高可信且官方adcode=填报 → 裁决坐标错(非字段错)","A":"—","B":"—","threshold":"裁决过程留痕","sev":"C2","hard_gate":false}],"hard_gates":["R001","R003","R004","R005","R008","R009","R011","R015","R022","R023"],"severity_levels":{"C0":"致命: 文件不可解析/坐标系错误/主键系统性问题","C1":"关键: 主键缺失重复/明显错误坐标/跨区钉死 (Hard Gate)","C2":"主要: 区县不一致/定位组分缺失/POI不可靠","C3":"一般: 格式/命名/非关键字段"},"batch_verdict":"PASS = 全部HardGate通过 ∧ 准确性≥98% ∧ 完整性≥98% ∧ 一致性≥99% ∧ 无系统性缺陷; 有条件合格 = 无致命/系统性问题但少量指标未达阈值且有整改措施; 不合格 = HardGate失败或系统性缺陷。时效性/可访问性证据不足记 N/A。","frozen_at":"2026-09-17","basis":"GB/T 36344-2018 六指标; GB/T 35639-2017 地址组分; 错漏分级思想参照 GB/T 18316/24356","samples":{"DQ-R001@dq-rules-v1":{"rule_id":"DQ-R001@dq-rules-v1","rule_version":"V1-FROZEN","rule_text":"非空且为字符串编码","dimension":"规范性","severity":"C1","hard_gate":true,"samples":{"positive_trigger":{"store_code":"","store_name":"示范超市","province":"安徽省","city":"芜湖市","district":"镜湖区","customer_address":"芜湖市镜湖区北京路8号","lng":118.38,"lat":31.33,"channel":"TT","otm_grade":"A"},"negative_pass":{"store_code":12345,"store_name":"示范超市","province":"安徽省","city":"芜湖市","district":"镜湖区","customer_address":"芜湖市镜湖区北京路8号","lng":118.38,"lat":31.33,"channel":"TT","otm_grade":"A"}},"expected":{"positive_trigger":"FAIL","negative_pass":"PASS"},"note":"样本为协议级最小样例；provider 依赖规则(R018-R021,R023-R026,R028,R031)的 provider 响应结构见各仓实现契约"},"DQ-R002@dq-rules-v1":{"rule_id":"DQ-R002@dq-rules-v1","rule_version":"V1-FROZEN","rule_text":"非空且长度>=2","dimension":"规范性","severity":"C2","hard_gate":false,"samples":{"positive_trigger":{"store_code":"WH000001","store_name":"A","province":"安徽省","city":"芜湖市","district":"镜湖区","customer_address":"芜湖市镜湖区北京路8号","lng":118.38,"lat":31.33,"channel":"TT","otm_grade":"A"},"negative_pass":{"store_code":"WH000001","store_name":"示范超市","province":"安徽省","city":"芜湖市","district":"镜湖区","customer_address":"芜湖市镜湖区北京路8号","lng":118.38,"lat":31.33,"channel":"TT","otm_grade":"A"}},"expected":{"positive_trigger":"FAIL","negative_pass":"PASS"},"note":"样本为协议级最小样例；provider 依赖规则(R018-R021,R023-R026,R028,R031)的 provider 响应结构见各仓实现契约"},"DQ-R003@dq-rules-v1":{"rule_id":"DQ-R003@dq-rules-v1","rule_version":"V1-FROZEN","rule_text":"合法值=安徽省","dimension":"规范性","severity":"C1","hard_gate":true,"samples":{"positive_trigger":{"store_code":"WH000001","store_name":"示范超市","province":"江苏省","city":"芜湖市","district":"镜湖区","customer_address":"芜湖市镜湖区北京路8号","lng":118.38,"lat":31.33,"channel":"TT","otm_grade":"A"},"negative_pass":{"store_code":"WH000001","store_name":"示范超市","province":"安徽省","city":"芜湖市","district":"镜湖区","customer_address":"芜湖市镜湖区北京路8号","lng":118.38,"lat":31.33,"channel":"TT","otm_grade":"A"}},"expected":{"positive_trigger":"FAIL","negative_pass":"PASS"},"note":"样本为协议级最小样例；provider 依赖规则(R018-R021,R023-R026,R028,R031)的 provider 响应结构见各仓实现契约"},"DQ-R004@dq-rules-v1":{"rule_id":"DQ-R004@dq-rules-v1","rule_version":"V1-FROZEN","rule_text":"合法值=芜湖市","dimension":"规范性","severity":"C1","hard_gate":true,"samples":{"positive_trigger":{"store_code":"WH000001","store_name":"示范超市","province":"安徽省","city":"合肥市","district":"镜湖区","customer_address":"芜湖市镜湖区北京路8号","lng":118.38,"lat":31.33,"channel":"TT","otm_grade":"A"},"negative_pass":{"store_code":"WH000001","store_name":"示范超市","province":"安徽省","city":"芜湖市","district":"镜湖区","customer_address":"芜湖市镜湖区北京路8号","lng":118.38,"lat":31.33,"channel":"TT","otm_grade":"A"}},"expected":{"positive_trigger":"FAIL","negative_pass":"PASS"},"note":"样本为协议级最小样例；provider 依赖规则(R018-R021,R023-R026,R028,R031)的 provider 响应结构见各仓实现契约"},"DQ-R005@dq-rules-v1":{"rule_id":"DQ-R005@dq-rules-v1","rule_version":"V1-FROZEN","rule_text":"district∈民政部码表芜湖合法区县集合(Xzqh20251231)","dimension":"规范性","severity":"C1","hard_gate":true,"samples":{"positive_trigger":{"store_code":"WH000001","store_name":"示范超市","province":"安徽省","city":"芜湖市","district":"姑苏区","customer_address":"芜湖市镜湖区北京路8号","lng":118.38,"lat":31.33,"channel":"TT","otm_grade":"A"},"negative_pass":{"store_code":"WH000001","store_name":"示范超市","province":"安徽省","city":"芜湖市","district":"弋江区","customer_address":"芜湖市镜湖区北京路8号","lng":118.38,"lat":31.33,"channel":"TT","otm_grade":"A"}},"expected":{"positive_trigger":"FAIL","negative_pass":"PASS"},"note":"样本为协议级最小样例；provider 依赖规则(R018-R021,R023-R026,R028,R031)的 provider 响应结构见各仓实现契约"},"DQ-R006@dq-rules-v1":{"rule_id":"DQ-R006@dq-rules-v1","rule_version":"V1-FROZEN","rule_text":"∈约定渠道码表","dimension":"规范性","severity":"C3","hard_gate":false,"samples":{"positive_trigger":{"store_code":"WH000001","store_name":"示范超市","province":"安徽省","city":"芜湖市","district":"镜湖区","customer_address":"芜湖市镜湖区北京路8号","lng":118.38,"lat":31.33,"channel":"XX","otm_grade":"A"},"negative_pass":{"store_code":"WH000001","store_name":"示范超市","province":"安徽省","city":"芜湖市","district":"镜湖区","customer_address":"芜湖市镜湖区北京路8号","lng":118.38,"lat":31.33,"channel":"TT","otm_grade":"A"}},"expected":{"positive_trigger":"FAIL","negative_pass":"PASS"},"note":"样本为协议级最小样例；provider 依赖规则(R018-R021,R023-R026,R028,R031)的 provider 响应结构见各仓实现契约"},"DQ-R007@dq-rules-v1":{"rule_id":"DQ-R007@dq-rules-v1","rule_version":"V1-FROZEN","rule_text":"∈约定值域{A,B,C,PA,PB,PC}","dimension":"规范性","severity":"C3","hard_gate":false,"samples":{"positive_trigger":{"store_code":"WH000001","store_name":"示范超市","province":"安徽省","city":"芜湖市","district":"镜湖区","customer_address":"芜湖市镜湖区北京路8号","lng":118.38,"lat":31.33,"channel":"TT","otm_grade":"Z"},"negative_pass":{"store_code":"WH000001","store_name":"示范超市","province":"安徽省","city":"芜湖市","district":"镜湖区","customer_address":"芜湖市镜湖区北京路8号","lng":118.38,"lat":31.33,"channel":"TT","otm_grade":"PB"}},"expected":{"positive_trigger":"FAIL","negative_pass":"PASS"},"note":"样本为协议级最小样例；provider 依赖规则(R018-R021,R023-R026,R028,R031)的 provider 响应结构见各仓实现契约"},"DQ-R008@dq-rules-v1":{"rule_id":"DQ-R008@dq-rules-v1","rule_version":"V1-FROZEN","rule_text":"数值型且芜湖经度范围[117.5,119.0]","dimension":"规范性","severity":"C1","hard_gate":true,"samples":{"positive_trigger":{"store_code":"WH000001","store_name":"示范超市","province":"安徽省","city":"芜湖市","district":"镜湖区","customer_address":"芜湖市镜湖区北京路8号","lng":120.5,"lat":31.33,"channel":"TT","otm_grade":"A"},"negative_pass":{"store_code":"WH000001","store_name":"示范超市","province":"安徽省","city":"芜湖市","district":"镜湖区","customer_address":"芜湖市镜湖区北京路8号","lng":118.38,"lat":31.33,"channel":"TT","otm_grade":"A"}},"expected":{"positive_trigger":"FAIL","negative_pass":"PASS"},"note":"样本为协议级最小样例；provider 依赖规则(R018-R021,R023-R026,R028,R031)的 provider 响应结构见各仓实现契约"},"DQ-R009@dq-rules-v1":{"rule_id":"DQ-R009@dq-rules-v1","rule_version":"V1-FROZEN","rule_text":"数值型且芜湖纬度范围[30.5,31.8]","dimension":"规范性","severity":"C1","hard_gate":true,"samples":{"positive_trigger":{"store_code":"WH000001","store_name":"示范超市","province":"安徽省","city":"芜湖市","district":"镜湖区","customer_address":"芜湖市镜湖区北京路8号","lng":118.38,"lat":32.5,"channel":"TT","otm_grade":"A"},"negative_pass":{"store_code":"WH000001","store_name":"示范超市","province":"安徽省","city":"芜湖市","district":"镜湖区","customer_address":"芜湖市镜湖区北京路8号","lng":118.38,"lat":31.33,"channel":"TT","otm_grade":"A"}},"expected":{"positive_trigger":"FAIL","negative_pass":"PASS"},"note":"样本为协议级最小样例；provider 依赖规则(R018-R021,R023-R026,R028,R031)的 provider 响应结构见各仓实现契约"},"DQ-R010@dq-rules-v1":{"rule_id":"DQ-R010@dq-rules-v1","rule_version":"V1-FROZEN","rule_text":"地址满足定位结构: 行政区划名+(街路巷名|院门楼址)","dimension":"规范性","severity":"C2","hard_gate":false,"samples":{"positive_trigger":{"store_code":"WH000001","store_name":"示范超市","province":"安徽省","city":"芜湖市","district":"镜湖区","customer_address":"镜湖区","lng":118.38,"lat":31.33,"channel":"TT","otm_grade":"A"},"negative_pass":{"store_code":"WH000001","store_name":"示范超市","province":"安徽省","city":"芜湖市","district":"镜湖区","customer_address":"镜湖区北京路8号","lng":118.38,"lat":31.33,"channel":"TT","otm_grade":"A"}},"expected":{"positive_trigger":"FAIL","negative_pass":"PASS"},"note":"样本为协议级最小样例；provider 依赖规则(R018-R021,R023-R026,R028,R031)的 provider 响应结构见各仓实现契约"},"DQ-R011@dq-rules-v1":{"rule_id":"DQ-R011@dq-rules-v1","rule_version":"V1-FROZEN","rule_text":"非空非占位","dimension":"完整性","severity":"C1","hard_gate":true,"samples":{"positive_trigger":{"store_code":"--","store_name":"示范超市","province":"安徽省","city":"芜湖市","district":"镜湖区","customer_address":"芜湖市镜湖区北京路8号","lng":118.38,"lat":31.33,"channel":"TT","otm_grade":"A"},"negative_pass":{"store_code":"WH000001","store_name":"示范超市","province":"安徽省","city":"芜湖市","district":"镜湖区","customer_address":"芜湖市镜湖区北京路8号","lng":118.38,"lat":31.33,"channel":"TT","otm_grade":"A"}},"expected":{"positive_trigger":"FAIL","negative_pass":"PASS"},"note":"样本为协议级最小样例；provider 依赖规则(R018-R021,R023-R026,R028,R031)的 provider 响应结构见各仓实现契约"},"DQ-R012@dq-rules-v1":{"rule_id":"DQ-R012@dq-rules-v1","rule_version":"V1-FROZEN","rule_text":"非空非占位","dimension":"完整性","severity":"C2","hard_gate":false,"samples":{"positive_trigger":{"store_code":"WH000001","store_name":"未知","province":"安徽省","city":"芜湖市","district":"镜湖区","customer_address":"芜湖市镜湖区北京路8号","lng":118.38,"lat":31.33,"channel":"TT","otm_grade":"A"},"negative_pass":{"store_code":"WH000001","store_name":"示范超市","province":"安徽省","city":"芜湖市","district":"镜湖区","customer_address":"芜湖市镜湖区北京路8号","lng":118.38,"lat":31.33,"channel":"TT","otm_grade":"A"}},"expected":{"positive_trigger":"FAIL","negative_pass":"PASS"},"note":"样本为协议级最小样例；provider 依赖规则(R018-R021,R023-R026,R028,R031)的 provider 响应结构见各仓实现契约"},"DQ-R013@dq-rules-v1":{"rule_id":"DQ-R013@dq-rules-v1","rule_version":"V1-FROZEN","rule_text":"非空非占位(区分'0'/'--'/'未知')","dimension":"完整性","severity":"C2","hard_gate":false,"samples":{"positive_trigger":{"store_code":"WH000001","store_name":"示范超市","province":"安徽省","city":"芜湖市","district":"0","customer_address":"芜湖市镜湖区北京路8号","lng":118.38,"lat":31.33,"channel":"TT","otm_grade":"A"},"negative_pass":{"store_code":"WH000001","store_name":"示范超市","province":"安徽省","city":"芜湖市","district":"镜湖区","customer_address":"芜湖市镜湖区北京路8号","lng":118.38,"lat":31.33,"channel":"TT","otm_grade":"A"}},"expected":{"positive_trigger":"FAIL","negative_pass":"PASS"},"note":"样本为协议级最小样例；provider 依赖规则(R018-R021,R023-R026,R028,R031)的 provider 响应结构见各仓实现契约"},"DQ-R014@dq-rules-v1":{"rule_id":"DQ-R014@dq-rules-v1","rule_version":"V1-FROZEN","rule_text":"非空非占位","dimension":"完整性","severity":"C2","hard_gate":false,"samples":{"positive_trigger":{"store_code":"WH000001","store_name":"示范超市","province":"安徽省","city":"芜湖市","district":"镜湖区","customer_address":"","lng":118.38,"lat":31.33,"channel":"TT","otm_grade":"A"},"negative_pass":{"store_code":"WH000001","store_name":"示范超市","province":"安徽省","city":"芜湖市","district":"镜湖区","customer_address":"芜湖市镜湖区北京路8号","lng":118.38,"lat":31.33,"channel":"TT","otm_grade":"A"}},"expected":{"positive_trigger":"FAIL","negative_pass":"PASS"},"note":"样本为协议级最小样例；provider 依赖规则(R018-R021,R023-R026,R028,R031)的 provider 响应结构见各仓实现契约"},"DQ-R015@dq-rules-v1":{"rule_id":"DQ-R015@dq-rules-v1","rule_version":"V1-FROZEN","rule_text":"非空且≠(0,0)","dimension":"完整性","severity":"C1","hard_gate":true,"samples":{"positive_trigger":{"store_code":"WH000001","store_name":"示范超市","province":"安徽省","city":"芜湖市","district":"镜湖区","customer_address":"芜湖市镜湖区北京路8号","lng":0.0,"lat":0.0,"channel":"TT","otm_grade":"A"},"negative_pass":{"store_code":"WH000001","store_name":"示范超市","province":"安徽省","city":"芜湖市","district":"镜湖区","customer_address":"芜湖市镜湖区北京路8号","lng":118.38,"lat":31.33,"channel":"TT","otm_grade":"A"}},"expected":{"positive_trigger":"FAIL","negative_pass":"PASS"},"note":"样本为协议级最小样例；provider 依赖规则(R018-R021,R023-R026,R028,R031)的 provider 响应结构见各仓实现契约"},"DQ-R016@dq-rules-v1":{"rule_id":"DQ-R016@dq-rules-v1","rule_version":"V1-FROZEN","rule_text":"必填字段有效赋值率","dimension":"完整性","severity":"C3","hard_gate":false,"samples":{"positive_trigger":{"channel":null,"otm_grade":null},"negative_pass":{"channel":"TT","otm_grade":"A"}},"expected":{"positive_trigger":"FAIL","negative_pass":"PASS"},"note":"样本为协议级最小样例；provider 依赖规则(R018-R021,R023-R026,R028,R031)的 provider 响应结构见各仓实现契约"},"DQ-R017@dq-rules-v1":{"rule_id":"DQ-R017@dq-rules-v1","rule_version":"V1-FROZEN","rule_text":"具备可定位组分(街路巷名或院门/楼址, §6.2)","dimension":"完整性","severity":"C2","hard_gate":false,"samples":{"positive_trigger":{"store_code":"WH000001","store_name":"示范超市","province":"安徽省","city":"芜湖市","district":"镜湖区","customer_address":"镜湖区","lng":118.38,"lat":31.33,"channel":"TT","otm_grade":"A"},"negative_pass":{"store_code":"WH000001","store_name":"示范超市","province":"安徽省","city":"芜湖市","district":"镜湖区","customer_address":"镜湖区中山路步行街12号3层","lng":118.38,"lat":31.33,"channel":"TT","otm_grade":"A"}},"expected":{"positive_trigger":"FAIL","negative_pass":"PASS"},"note":"样本为协议级最小样例；provider 依赖规则(R018-R021,R023-R026,R028,R031)的 provider 响应结构见各仓实现契约"},"DQ-R018@dq-rules-v1":{"rule_id":"DQ-R018@dq-rules-v1","rule_version":"V1-FROZEN","rule_text":"填报区县=腾讯坐标反解adcode","dimension":"准确性","severity":"C2","hard_gate":true,"samples":{"positive_trigger":{"district":"鸠江区","tencent":{"provider":"tencent_regeo","adcode":"340207","lng":null,"lat":null,"reliability":0.9,"invalid_status":0}},"negative_pass":{"district":"鸠江区","tencent":{"provider":"tencent_regeo","adcode":"340202","lng":null,"lat":null,"reliability":0.9,"invalid_status":0}}},"expected":{"positive_trigger":"FAIL","negative_pass":"PASS"},"note":"样本为协议级最小样例；provider 依赖规则(R018-R021,R023-R026,R028,R031)的 provider 响应结构见各仓实现契约"},"DQ-R019@dq-rules-v1":{"rule_id":"DQ-R019@dq-rules-v1","rule_version":"V1-FROZEN","rule_text":"高德反解adcode与填报一致(独立第二源)","dimension":"准确性","severity":"C2","hard_gate":false,"samples":{"positive_trigger":{"district":"镜湖区","amap":{"provider":"tencent_regeo","adcode":"340207","lng":null,"lat":null,"reliability":0.9,"invalid_status":0}},"negative_pass":{"district":"镜湖区","amap":{"provider":"tencent_regeo","adcode":"340202","lng":null,"lat":null,"reliability":0.9,"invalid_status":0}}},"expected":{"positive_trigger":"FAIL","negative_pass":"PASS"},"note":"样本为协议级最小样例；provider 依赖规则(R018-R021,R023-R026,R028,R031)的 provider 响应结构见各仓实现契约"},"DQ-R020@dq-rules-v1":{"rule_id":"DQ-R020@dq-rules-v1","rule_version":"V1-FROZEN","rule_text":"poi_association命中且reliability>=0.8","dimension":"准确性","severity":"C3","hard_gate":false,"samples":{"positive_trigger":{"store_name":"示范超市","lng":118.38,"lat":31.33,"poi":{"hit":true,"reliability":0.6}},"negative_pass":{"store_name":"示范超市","lng":118.38,"lat":31.33,"poi":{"hit":true,"reliability":0.92}}},"expected":{"positive_trigger":"FAIL","negative_pass":"PASS"},"note":"样本为协议级最小样例；provider 依赖规则(R018-R021,R023-R026,R028,R031)的 provider 响应结构见各仓实现契约"},"DQ-R021@dq-rules-v1":{"rule_id":"DQ-R021@dq-rules-v1","rule_version":"V1-FROZEN","rule_text":"命中记录中POI官方adcode=填报区","dimension":"准确性","severity":"C2","hard_gate":false,"samples":{"positive_trigger":{"district":"镜湖区","poi":{"adcode":"340207"}},"negative_pass":{"district":"镜湖区","poi":{"adcode":"340202"}}},"expected":{"positive_trigger":"FAIL","negative_pass":"PASS"},"note":"样本为协议级最小样例；provider 依赖规则(R018-R021,R023-R026,R028,R031)的 provider 响应结构见各仓实现契约"},"DQ-R022@dq-rules-v1":{"rule_id":"DQ-R022@dq-rules-v1","rule_version":"V1-FROZEN","rule_text":"全表唯一","dimension":"准确性","severity":"C1","hard_gate":true,"samples":{"positive_trigger":{"store_code":"WH000001","other_store_code":"WH000001","other_addr":"不同的地址","other_lng":118.38,"other_lat":31.33},"negative_pass":{"store_code":"WH000001","other_store_code":"WH000002"}},"expected":{"positive_trigger":"FAIL","negative_pass":"PASS"},"note":"样本为协议级最小样例；provider 依赖规则(R018-R021,R023-R026,R028,R031)的 provider 响应结构见各仓实现契约"},"DQ-R023@dq-rules-v1":{"rule_id":"DQ-R023@dq-rules-v1","rule_version":"V1-FROZEN","rule_text":"不同店编码+不同地址+字节级同坐标+跨区县 → 异常复用","dimension":"准确性","severity":"C1","hard_gate":true,"samples":{"positive_trigger":{"store_code":"WH000001","addr":"A路1号","lng":118.381234,"lat":31.331234,"district":"镜湖区","other":{"store_code":"WH000099","addr":"B路2号","lng":"118.381234","lat":"31.331234","district":"鸠江区"}},"negative_pass":{"store_code":"WH000001","lng":118.381234,"lat":31.331234,"other":{"store_code":"WH000099","lng":118.5,"lat":31.5}}},"expected":{"positive_trigger":"FAIL","negative_pass":"PASS"},"note":"样本为协议级最小样例；provider 依赖规则(R018-R021,R023-R026,R028,R031)的 provider 响应结构见各仓实现契约"},"DQ-R024@dq-rules-v1":{"rule_id":"DQ-R024@dq-rules-v1","rule_version":"V1-FROZEN","rule_text":"50米紧邻(不同店编码不同地址)","dimension":"准确性","severity":"C3","hard_gate":false,"samples":{"positive_trigger":{"store_code":"WH000001","addr":"A路1号","lng":118.38,"lat":31.33,"other":{"store_code":"WH000099","addr":"B路2号","lng":118.3802,"lat":31.3302}},"negative_pass":{"store_code":"WH000001","lng":118.38,"lat":31.33,"other":{"store_code":"WH000099","lng":118.42,"lat":31.37}}},"expected":{"positive_trigger":"FAIL","negative_pass":"PASS"},"note":"样本为协议级最小样例；provider 依赖规则(R018-R021,R023-R026,R028,R031)的 provider 响应结构见各仓实现契约"},"DQ-R025@dq-rules-v1":{"rule_id":"DQ-R025@dq-rules-v1","rule_version":"V1-FROZEN","rule_text":"腾讯反解adcode=高德反解adcode","dimension":"一致性","severity":"C2","hard_gate":false,"samples":{"positive_trigger":{"tencent":{"provider":"tencent_regeo","adcode":"340202","lng":null,"lat":null,"reliability":0.9,"invalid_status":0},"amap":{"provider":"tencent_regeo","adcode":"340207","lng":null,"lat":null,"reliability":0.9,"invalid_status":0}},"negative_pass":{"tencent":{"provider":"tencent_regeo","adcode":"340202","lng":null,"lat":null,"reliability":0.9,"invalid_status":0},"amap":{"provider":"tencent_regeo","adcode":"340202","lng":null,"lat":null,"reliability":0.9,"invalid_status":0}}},"expected":{"positive_trigger":"FAIL","negative_pass":"PASS"},"note":"样本为协议级最小样例；provider 依赖规则(R018-R021,R023-R026,R028,R031)的 provider 响应结构见各仓实现契约"},"DQ-R026@dq-rules-v1":{"rule_id":"DQ-R026@dq-rules-v1","rule_version":"V1-FROZEN","rule_text":"POI官方adcode=坐标反解adcode(命中内)","dimension":"一致性","severity":"C2","hard_gate":false,"samples":{"positive_trigger":{"poi":{"adcode":"340202"},"tencent":{"provider":"tencent_regeo","adcode":"340207","lng":null,"lat":null,"reliability":0.9,"invalid_status":0}},"negative_pass":{"poi":{"adcode":"340202"},"tencent":{"provider":"tencent_regeo","adcode":"340202","lng":null,"lat":null,"reliability":0.9,"invalid_status":0}}},"expected":{"positive_trigger":"FAIL","negative_pass":"PASS"},"note":"样本为协议级最小样例；provider 依赖规则(R018-R021,R023-R026,R028,R031)的 provider 响应结构见各仓实现契约"},"DQ-R027@dq-rules-v1":{"rule_id":"DQ-R027@dq-rules-v1","rule_version":"V1-FROZEN","rule_text":"区县代码前4位=城市代码, 城市=芜湖","dimension":"一致性","severity":"C1","hard_gate":false,"samples":{"positive_trigger":{"district_code":"340222","city_code":"340200","city":"芜湖市"},"negative_pass":{"district_code":"340202","city_code":"340200","city":"芜湖市"}},"expected":{"positive_trigger":"FAIL","negative_pass":"PASS"},"note":"样本为协议级最小样例；provider 依赖规则(R018-R021,R023-R026,R028,R031)的 provider 响应结构见各仓实现契约"},"DQ-R028@dq-rules-v1":{"rule_id":"DQ-R028@dq-rules-v1","rule_version":"V1-FROZEN","rule_text":"=-1 的比例作为现势性风险证据","dimension":"时效性","severity":"C2","hard_gate":false,"samples":{"positive_trigger":{"poi":{"invalid_status":-1,"n_total":100,"n_invalid":25}},"negative_pass":{"poi":{"invalid_status":0,"n_total":100,"n_invalid":2}}},"expected":{"positive_trigger":"FAIL","negative_pass":"PASS"},"note":"样本为协议级最小样例；provider 依赖规则(R018-R021,R023-R026,R028,R031)的 provider 响应结构见各仓实现契约"},"DQ-R029@dq-rules-v1":{"rule_id":"DQ-R029@dq-rules-v1","rule_version":"V1-FROZEN","rule_text":"xlsx可解析/UTF-8可读/字段可访问","dimension":"可访问性","severity":"C0","hard_gate":true,"samples":{"positive_trigger":"binary_corrupt_file","negative_pass":"valid_xlsx_utf8"},"expected":{"positive_trigger":"FAIL","negative_pass":"PASS"},"note":"样本为协议级最小样例；provider 依赖规则(R018-R021,R023-R026,R028,R031)的 provider 响应结构见各仓实现契约"},"DQ-R030@dq-rules-v1":{"rule_id":"DQ-R030@dq-rules-v1","rule_version":"V1-FROZEN","rule_text":"全部必填字段有效的记录占比","dimension":"完整性","severity":"C2","hard_gate":false,"samples":{"positive_trigger":{"n_required_fields_total":10,"n_records_all_valid":60,"n_records":100},"negative_pass":{"n_required_fields_total":10,"n_records_all_valid":95,"n_records":100}},"expected":{"positive_trigger":"FAIL","negative_pass":"PASS"},"note":"样本为协议级最小样例；provider 依赖规则(R018-R021,R023-R026,R028,R031)的 provider 响应结构见各仓实现契约"},"DQ-R031@dq-rules-v1":{"rule_id":"DQ-R031@dq-rules-v1","rule_version":"V1-FROZEN","rule_text":"腾讯≠填报时, POI高可信且官方adcode=填报 → 裁决坐标错(非字段错)","dimension":"一致性","severity":"C2","hard_gate":false,"samples":{"positive_trigger":{"district":"鸠江区","tencent":{"provider":"tencent_regeo","adcode":"340207","lng":null,"lat":null,"reliability":0.9,"invalid_status":0},"poi":{"reliability":0.95,"adcode":"340202"}},"negative_pass":{"district":"鸠江区","tencent":{"provider":"tencent_regeo","adcode":"340202","lng":null,"lat":null,"reliability":0.9,"invalid_status":0},"poi":{"reliability":0.95,"adcode":"340202"}}},"expected":{"positive_trigger":"FAIL","negative_pass":"PASS"},"note":"样本为协议级最小样例；provider 依赖规则(R018-R021,R023-R026,R028,R031)的 provider 响应结构见各仓实现契约"}}};
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const SEVC={'C0':'bC0','C1':'bC1','C2':'bC2','C3':'bC3'};
+
+// nav
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('nav button').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('main section').forEach(x=>x.classList.remove('show'));
+  b.classList.add('active');$('#'+b.dataset.t).classList.add('show');});
+
+// header
+$('#hdr-meta').textContent=`协议 ${D.protocol_version} · 规则 ${D.rules.length} 条冻结 (${esc(D.frozen_at||'')}) · 依据 ${esc(D.basis||'')}`;
+$('#pv').textContent=D.protocol_version;
+$('#foot').textContent=`GeoGov · 数据源: protocol/dq_verdict_protocol_v1.json + rules/dq_rules_v1_frozen.json + rules/rule_samples_v1.jsonl · 构建: scripts/build_dashboard.py`;
+
+// ---- panel 1: gate fields + invariants
+$('#gate-fields').innerHTML='<tr><th>字段</th><th>类型/取值</th></tr>'+Object.entries(D.gate_props).map(([k,v])=>{
+  const req=D.gate_required.includes(k)?'<span class="req">*</span> ':'';
+  let t=v.type||'';if(v.const)t='const '+v.const;else if(v.enum)t=v.enum.join(' | ');
+  if(t==='array'&&v.items){const it=v.items;if(it.$ref){const n=it.$ref.split('/').pop();t='RuleEvaluation[]';}else t=(it.type||'object')+'[]';}
+  if(v.format)t+=` (${v.format})`;
+  return `<tr><td>${req}${esc(k)}</td><td class="kv">${esc(t)}</td></tr>`;}).join('');
+$('#invariants').innerHTML=D.invariants.map(x=>`<div class="inv">${esc(x)}</div>`).join('');
+$('#batch-verdict').textContent=D.batch_verdict;
+
+// demo decision (clearly synthetic)
+const demo={protocol_version:D.protocol_version,action:'REVIEW',disposition:'QUARANTINE',scope:'batch://demo-2026-10-13',
+ hard_gates_all_pass:false,rationale:'R004 主键唯一性失败 (C1 HardGate)；缺失必评证据 R022 → fail-closed',
+ decided_by:'dq-officer@example',decided_at:'2026-10-13T09:00:00+08:00',immutable:true,supersedes:null,
+ evaluations:[{rule_id:'DQ-R004@dq-rules-v1',verdict:'FAIL',severity:'C1',evidence_id:'ev-0001'},
+              {rule_id:'DQ-R001@dq-rules-v1',verdict:'PASS',severity:'C1',evidence_id:'ev-0002'},
+              {rule_id:'DQ-R022@dq-rules-v1',verdict:'NOT_APPLICABLE',severity:'C2',note:'证据缺失记 N/A，不猜测'}]};
+$('#demo-decision').textContent=JSON.stringify(demo,null,1);
+
+// ---- panel 2: matrix + rules
+let filter=null;
+const dims=[...new Set(D.rules.map(r=>r.dim))];
+const sevs=['C0','C1','C2','C3'];
+function renderMatrix(){
+  let h='<tr><th></th>'+sevs.map(s=>`<th>${s}</th>`).join('')+'<th>合计</th></tr>';
+  for(const d of dims){
+    h+=`<tr><th>${esc(d)}</th>`;let tot=0;
+    for(const s of sevs){const n=D.rules.filter(r=>r.dim===d&&r.sev===s).length;tot+=n;
+      const on=filter&&filter.d===d&&filter.s===s;
+      h+=`<td class="cell" data-d="${esc(d)}" data-s="${s}" style="${n?'':'opacity:.25'}${on?';outline:2px solid var(--accent)':''}">${n||'·'}</td>`;}
+    h+=`<td class="muted">${tot}</td></tr>`;}
+  h+='<tr><th>合计</th>'+sevs.map(s=>`<td><b>${D.rules.filter(r=>r.sev===s).length}</b></td>`).join('')+`<td><b>${D.rules.length}</b></td></tr>`;
+  $('#vmatrix').innerHTML=h;
+  $('#vmatrix').querySelectorAll('td.cell').forEach(td=>td.onclick=()=>{
+    const f={d:td.dataset.d,s:td.dataset.s};
+    filter=(filter&&filter.d===f.d&&filter.s===f.s)?null:f;renderMatrix();renderRules();});
+}
+function renderRules(){
+  let rs=D.rules;
+  if(filter){rs=rs.filter(r=>(!filter.d||r.dim===filter.d)&&(!filter.s||r.sev===filter.s));}
+  $('#vm-note').textContent=filter?`过滤: ${filter.d||'全维度'} × ${filter.s||'全级别'} → ${rs.length} 条（再点同格清除）`:'点击矩阵单元格可过滤';
+  $('#rules-table').innerHTML='<tr><th>ID</th><th>维度</th><th>子项</th><th>字段</th><th>规则</th><th>口径 A/B</th><th>阈值</th><th>级</th><th>HG</th></tr>'+
+   rs.map(r=>`<tr><td><b>${esc(r.id)}</b></td><td>${esc(r.dim)}</td><td class="kv">${esc(r.sub)}</td><td>${esc(r.field)}</td><td>${esc(r.rule)}</td><td class="kv">${esc(r.A)} / ${esc(r.B)}</td><td>${r.threshold}</td><td><span class="badge ${SEVC[r.sev]}">${r.sev}</span></td><td>${r.hard_gate?'<span class="hg">●</span>':''}</td></tr>`).join('');
+}
+$('#rule-count').textContent=D.rules.length;$('#hg-count').textContent=D.hard_gates.length;
+renderMatrix();renderRules();
+
+// ---- panel 3: vocab
+const chipify=(arr,fn)=>arr.map(x=>`<span class="chip">${fn?fn(x):esc(x)}</span>`).join('');
+$('#enum-admission').innerHTML=chipify(D.enums.admission);
+$('#enum-disposition').innerHTML=chipify(D.enums.disposition);
+$('#enum-severity').innerHTML=Object.entries(D.severity_levels).map(([k,v])=>`<span class="chip"><span class="badge ${SEVC[k]}">${k}</span> ${esc(v)}</span>`).join('');
+$('#vocab-desc').textContent=D.vocab.description||'';
+const repos=Object.keys(D.vocab).filter(k=>!['description'].includes(k));
+$('#vocab-table').innerHTML='<tr><th>仓</th><th>词汇映射</th></tr>'+repos.map(rp=>{
+  const v=D.vocab[rp];const body=typeof v==='object'?Object.entries(v).map(([a,b])=>`<b>${esc(a)}</b> → ${esc(Array.isArray(b)?b.join(', '):b)}`).join('<br>'):esc(v);
+  return `<tr><td style="white-space:nowrap">${esc(rp)}</td><td class="kv">${body}</td></tr>`;}).join('');
+
+// ---- panel 4: samples
+const sel=$('#sample-select');
+const ruleList=()=>{const q=$('#sample-search').value.trim().toLowerCase();
+  return D.rules.filter(r=>{const s=D.samples['DQ-'+r.id+'@dq-rules-v1'];
+    return !q||((r.id+r.field+r.rule+(s?s.rule_text:'')).toLowerCase().includes(q));});};
+function fillSelect(){const rs=ruleList();
+  sel.innerHTML=rs.map(r=>{const hg=r.hard_gate?' ●':'';return `<option value="${r.id}">${r.id} [${r.sev}${hg}] ${r.dim} · ${r.field} — ${r.rule}</option>`;}).join('');
+  if(rs.length)show(rs[0].id);}
+function show(id){const r=D.rules.find(x=>x.id===id);if(!r)return;
+  const s=D.samples['DQ-'+r.id+'@dq-rules-v1'];
+  if(!s){$('#sample-detail').innerHTML='<p class="muted">该规则无样例登记。</p>';return;}
+  const p=s.samples.positive_trigger,n=s.samples.negative_pass;
+  const keys=[...new Set([...Object.keys(p||{}),...Object.keys(n||{})])];
+  const diffKeys=keys.filter(k=>JSON.stringify(p?.[k])!==JSON.stringify(n?.[k]));
+  const row=(obj,cls)=>`<div class="rowcard ${cls}"><div class="hd">${cls==='bad'?'positive_trigger（触发违例）':'negative_pass（合格对照）'}</div><table>`+
+    keys.map(k=>{const v=obj?.[k];const isd=diffKeys.includes(k);
+      return `<tr><td class="k">${esc(k)}</td><td class="${isd?'diff':''}">${v===undefined?'<span class="muted">—</span>':esc(JSON.stringify(v))}</td></tr>`;}).join('')+'</table></div>';
+  $('#sample-detail').innerHTML=`<h3 style="margin-top:14px">${esc(r.id)} · ${esc(r.rule)} <span class="badge ${SEVC[r.sev]}">${r.sev}</span>${r.hard_gate?' <span class="hg">● HardGate</span>':''}</h3>
+    <p class="kv">口径: ${esc(r.A)} / ${esc(r.B)} ≥ ${r.threshold} ｜ expected: ${esc(JSON.stringify(s.expected))}</p>
+    ${s.note?`<p class="muted">注: ${esc(s.note)}</p>`:''}
+    <div class="rowpair">${row(p,'bad')}${row(n,'good')}</div>
+    <p class="muted" style="margin-top:6px">高亮 = 两行取值不同的触发字段（共 ${diffKeys.length} 处）。</p>`;}
+sel.onchange=()=>show(sel.value);
+$('#sample-search').oninput=fillSelect;
+fillSelect();
+</script>
+</body>
+</html>

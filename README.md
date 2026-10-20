@@ -210,6 +210,17 @@ topprism.yaml · CITATION.cff
 
 仓库 `topprismdata/geospatial-data-governance`(随组织 kebab-case 命名惯例),未来包名 `geogov`、CLI `geogov`（均未实现），License **MIT**。
 
+## 14. Local demos — 本地演示（脚本入仓，数据不入仓）
+
+| 工具 | 脚本 | 输出 | 说明 |
+| --- | --- | --- | --- |
+| **DQ 裁决台账看板** | `scripts/build_dashboard.py` | `docs/reports/geogov_dashboard.html` | 只用本仓公开资产（协议 v1.0.1 + 31 条 V1-FROZEN 规则 + 正反例）——GateDecision 契约、五不变量、维度×级别矩阵、四仓词汇对照、规则正反例 diff。可直接打开，离线可用 |
+| **芜湖全量数据质量检查页 v2** | `scripts/build_wuhu_qc_page.py` | 默认写 `~/Downloads/GeoGov_芜湖数据质量检查_v2.html`（**不入仓**） | 1,070 店协议对齐版：批次 KPI、可复算规则子集实测通过率、不可复算规则显式 N/A（fail-closed）、地图/台账联动、单店六层证据 + 按协议投影的**建议裁决卡**（授权留人）。离线散点图即时可用，在线底图按需加载 |
+
+**数据敏感性**：门店名/地址/坐标属客户数据，只存在于本地输入与本地生成物；本仓只收构建脚本（`*.local.json`、`data/` 已 gitignore）。v1 构建脚本历史位置：`visit-research/experiments/wuhu_demo/build_qc_page.py`（2026-09-20）。
+
+**裁决口径**：页面只产建议（REVIEW / ALLOW_WITH_LIMITS / BLOCK 建议），不自动晋升——与 ANF `capability-record` 的 G4 授权边界一致；不可复算规则一律记 N/A，不以猜测补齐。
+
 ## GeoGov in one sentence
 
 GeoGov 是空间数据进入企业世界模型和决策系统之前的可信入口。
